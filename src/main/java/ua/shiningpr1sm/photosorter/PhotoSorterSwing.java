@@ -284,6 +284,12 @@ public class PhotoSorterSwing {
         videoControlsPanel.setVisible(false);
         stopPlayback();
 
+        if (compatibilityModeCheckbox.isSelected() && !FFMPEG_EXE.exists()) {
+            statusLabel.setText("FFmpeg is installing, please wait...");
+        } else {
+            statusLabel.setText(isCurrentPhotoCropped ? "[CROPPED]" : " ");
+        }
+
         if (filesToSort.length == 0 || currentIndex >= filesToSort.length) {
             imageLabel.setIcon(null);
             imageLabel.setText("No files.");
