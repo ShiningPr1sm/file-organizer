@@ -18,7 +18,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>ua.shiningpr1sm.photosorter.PhotoSorterSwing</mainClass>
+                  <mainClass>ua.shiningpr1sm.photosorter.FileOrganizerSwing</mainClass>
                 </transformer>
               </transformers>
               <filters>

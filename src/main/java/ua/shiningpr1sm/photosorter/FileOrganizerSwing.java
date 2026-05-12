@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.*;
 
-public class PhotoSorterSwing {
+public class FileOrganizerSwing {
     private File sourceFolder;
     private File destinationFolder;
     private JFrame mainFrame;
@@ -77,7 +77,7 @@ public class PhotoSorterSwing {
     private record MoveAction(File movedFile, boolean wasDelete, boolean wasSkip, Path backupPath) {
     }
 
-    public PhotoSorterSwing() {
+    public FileOrganizerSwing() {
         TEMP_FRAME_DIR = new File(SHARED_ROOT, "temp_frames");
         if (!TEMP_FRAME_DIR.exists())
             TEMP_FRAME_DIR.mkdirs();
@@ -136,7 +136,7 @@ public class PhotoSorterSwing {
             filesToSort = new File[0];
         }
 
-        mainFrame = new JFrame("File Sorter");
+        mainFrame = new JFrame("File Organizer");
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.setResizable(true);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -148,7 +148,7 @@ public class PhotoSorterSwing {
         );
 
         try {
-            Image icon = ImageIO.read(Objects.requireNonNull(PhotoSorterSwing.class.getResource("/project_icon.png")));
+            Image icon = ImageIO.read(Objects.requireNonNull(FileOrganizerSwing.class.getResource("/project_icon.png")));
             mainFrame.setIconImage(icon);
         } catch (Exception ignored) {
 
@@ -570,7 +570,7 @@ public class PhotoSorterSwing {
             return;
         String fileName = (currentIndex < filesToSort.length) ? filesToSort[currentIndex].getName() : "End";
         int filesLeft = Math.max(0, filesToSort.length - currentIndex);
-        mainFrame.setTitle("File Sorter | Left: " + filesLeft + " | " + fileName);
+        mainFrame.setTitle("File Organizer | File left: " + filesLeft + " | " + fileName);
         statusLabel.setText(isCurrentPhotoCropped ? "[CROPPED]" : " ");
     }
 
@@ -795,7 +795,7 @@ public class PhotoSorterSwing {
                 destinationFolder = newFolder;
             savePathsToConfig(sourceFolder, destinationFolder);
             mainFrame.dispose();
-            new PhotoSorterSwing();
+            new FileOrganizerSwing();
         }
     }
 
@@ -926,7 +926,7 @@ public class PhotoSorterSwing {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(PhotoSorterSwing::new);
+        SwingUtilities.invokeLater(FileOrganizerSwing::new);
     }
 
     public static class WrapLayout extends FlowLayout {
