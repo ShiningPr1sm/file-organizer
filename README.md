@@ -24,9 +24,9 @@ The program allows you to sort files from a single main folder—which has accum
 * FFmpeg will be automaticly downloaded.
 
 ### Download
-* You can download a .jar file or .exe from [Releases]([url](https://github.com/ShiningPr1sm/java-photo-sorter/releases));
+* You can download a .jar file or .exe from [Releases](https://github.com/ShiningPr1sm/java-photo-sorter/releases);
 
 ### Acknowledgments
 A big thank you to my friend "FerdinandFoster" for conducting numerous tests and finding bugs in this program. Thanks to this, we’ve ended up with a fairly robust system with a minimal number of errors.
 
-If you find a bug, error, or typo, please submit a report in the [Issues]([url](https://github.com/ShiningPr1sm/java-photo-sorter/issues)) section. Thank you very much for using this program!
+If you find a bug, error, or typo, please submit a report in the [Issues](https://github.com/ShiningPr1sm/java-photo-sorter/issues) section. Thank you very much for using this program!
