@@ -128,7 +128,7 @@ public class PhotoSorterSwing {
         rootFolder = destinationFolder;
         currentFolder = destinationFolder;
         File[] allFiles = sourceFolder.listFiles((dir, name) ->
-                name.toLowerCase().matches(".*\\.(jpg|png|jpeg|txt|mp4|m4v|m4a|mov|avi|mkv)$"));
+                name.toLowerCase().matches(".*\\.(jpg|png|jpeg|txt|mp4|m4v|m4a|mov|avi|mkv|mp3|webp)$"));
         if (allFiles != null) {
             filesToSort = allFiles;
             Arrays.sort(filesToSort);
@@ -308,11 +308,11 @@ public class PhotoSorterSwing {
         fileExtensionLabel.setText("Type: ." + getFileExtension(file).toUpperCase());
 
         String extension = getFileExtension(file);
-        if (extension.matches("jpg|jpeg|png")) {
+        if (extension.matches("jpg|jpeg|png|webp")) {
             showImagePreview(file);
         } else if (extension.equals("txt")) {
             showTextPreview(file);
-        } else if (extension.matches("mp4|m4v|m4a|mov|avi|mkv")) {
+        } else if (extension.matches("mp4|m4v|m4a|mov|avi|mkv|mp3")) {
             if (compatibilityModeCheckbox.isSelected()) {
                 showCompatibilityVideoPreview(file);
             } else {
@@ -502,10 +502,21 @@ public class PhotoSorterSwing {
 
     private void showImagePreview(File file) {
         try {
-            BufferedImage originalImage = ImageIO.read(file);
-            if (originalImage == null) return;
-            int maxWidth = frameWidth - 50;
-            int maxHeight = frameHeight - 250;
+            BufferedImage originalImage;
+
+            if (getFileExtension(file).equals("webp")) {
+                originalImage = readWebpViaFfmpeg(file);
+            } else {
+                originalImage = ImageIO.read(file);
+            }
+
+            if (originalImage == null) {
+                imageLabel.setText("Could not read image.");
+                return;
+            }
+
+            int maxWidth = Math.max(400, previewPanel.getWidth() - 50);
+            int maxHeight = Math.max(300, previewPanel.getHeight() - 250);
             double ratio = Math.min((double) maxWidth / originalImage.getWidth(), (double) maxHeight / originalImage.getHeight());
             int newWidth = (int) (originalImage.getWidth() * ratio);
             int newHeight = (int) (originalImage.getHeight() * ratio);
@@ -515,8 +526,27 @@ public class PhotoSorterSwing {
             imageLabel.setIcon(new ImageIcon(scaledImage));
             previewCardLayout.show(previewPanel, "IMAGE");
         } catch (Exception e) {
-            nextFile();
+            System.err.println("Error loading image: " + e.getMessage());
         }
+    }
+
+    private BufferedImage readWebpViaFfmpeg(File webpFile) {
+        try {
+            File tempJpg = new File(TEMP_FRAME_DIR, "webp_convert.jpg");
+            ProcessBuilder pb = new ProcessBuilder(
+                    FFMPEG_EXE.getAbsolutePath(), "-i", webpFile.getAbsolutePath(),
+                    "-y", tempJpg.getAbsolutePath()
+            );
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            pb.start().waitFor();
+
+            if (tempJpg.exists()) {
+                return ImageIO.read(tempJpg);
+            }
+        } catch (Exception e) {
+            System.err.println("WebP conversion failed: " + e.getMessage());
+        }
+        return null;
     }
 
     private void showTextPreview(File file) {
