@@ -44,6 +44,7 @@ public class PhotoSorterSwing {
     private final JFXPanel jfxPanel;
     private MediaPlayer mediaPlayer;
     private MediaView mediaView;
+    private Process currentFfmpegProcess;
 
     private final JPanel videoControlsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
     private final JButton playPauseButton = new JButton("Play");
@@ -91,6 +92,8 @@ public class PhotoSorterSwing {
         UIManager.put("Button.minimumWidth", 120);
         UIManager.put("Button.minimumHeight", 40);
         UIManager.put("Button.margin", new Insets(10, 20, 10, 20));
+        UIManager.put("Button.focus", new Color(0, 0, 0, 0));
+        UIManager.put("CheckBox.focus", new Color(0, 0, 0, 0));
         Dimension videoButtonSize = new Dimension(120, 40);
         playPauseButton.setPreferredSize(videoButtonSize);
         stopButton.setPreferredSize(videoButtonSize);
@@ -185,6 +188,9 @@ public class PhotoSorterSwing {
         compatibilityModeCheckbox.setToolTipText("Use this if videos are not playing correctly.");
         compatibilityModeCheckbox.addActionListener(e -> updatePreview());
 
+        compatibilityModeCheckbox.setFocusPainted(false);
+        compatibilityModeCheckbox.setFocusable(false);
+
         JPanel controlPanel = new JPanel(new WrapLayout());
         controlPanel.add(selectSourceButton);
         controlPanel.add(selectDestButton);
@@ -243,7 +249,7 @@ public class PhotoSorterSwing {
         Platform.runLater(() -> {
             mediaView = new MediaView();
             javafx.scene.layout.StackPane root = new javafx.scene.layout.StackPane(mediaView);
-            root.setStyle("-fx-background-color: black;");
+            root.setStyle("-fx-background-color: white;");
             Scene scene = new Scene(root);
             jfxPanel.setScene(scene);
 
@@ -339,67 +345,82 @@ public class PhotoSorterSwing {
     private void showCompatibilityVideoPreview(File file) {
         videoControlsPanel.setVisible(true);
         previewCardLayout.show(previewPanel, "IMAGE");
+
+        if (!FFMPEG_EXE.exists()) {
+            imageLabel.setText("FFmpeg is missing...");
+            return;
+        }
+
         imageLabel.setIcon(null);
-        imageLabel.setText("Extracting frames and audio...");
+        imageLabel.setText("<html><center><font size='5'>Processing video (FFmpeg)...</font></center></html>");
+        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        imageLabel.setText("Processing video (FFmpeg)...");
         playPauseButton.setEnabled(false);
 
         CompletableFuture.runAsync(() -> {
             try {
                 clearTempFrames();
                 compatibilityFrames.clear();
-
                 File audioFile = new File(TEMP_FRAME_DIR, "audio.wav");
 
-                int maxWidth = Math.max(800, mainFrame.getWidth() - 100);
-                int maxHeight = Math.max(600, mainFrame.getHeight() - 350);
-                ProcessBuilder framePb = new ProcessBuilder(
-                        FFMPEG_EXE.getAbsolutePath(), "-i", file.getAbsolutePath(),
-                        "-vf", "fps=30,scale=w=" + maxWidth + ":h=" + maxHeight + ":force_original_aspect_ratio=decrease",
-                        new File(TEMP_FRAME_DIR, "f_%04d.jpg").getAbsolutePath()
-                );
+                int maxWidth = Math.max(400, previewPanel.getWidth() - 20);
+                int maxHeight = Math.max(300, previewPanel.getHeight() - 20);
 
-                ProcessBuilder audioPb = new ProcessBuilder(
-                        FFMPEG_EXE.getAbsolutePath(), "-i", file.getAbsolutePath(),
+                ProcessBuilder pb = new ProcessBuilder(
+                        FFMPEG_EXE.getAbsolutePath(),
+                        "-i", file.getAbsolutePath(),
+                        "-y",
+                        "-vf", "fps=30,scale=w=" + maxWidth + ":h=" + maxHeight + ":force_original_aspect_ratio=decrease",
+                        new File(TEMP_FRAME_DIR, "f_%04d.jpg").getAbsolutePath(),
                         "-vn", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2",
                         audioFile.getAbsolutePath()
                 );
 
-                framePb.start().waitFor();
+                pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+                pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
 
-                try {
-                    audioPb.start().waitFor();
-                } catch (Exception ignored) {
+                currentFfmpegProcess = pb.start();
 
+                boolean finished = currentFfmpegProcess.waitFor(30, java.util.concurrent.TimeUnit.SECONDS);
+
+                if (!finished) {
+                    currentFfmpegProcess.destroyForcibly();
+                    throw new Exception("FFmpeg timeout");
                 }
 
                 File[] frames = TEMP_FRAME_DIR.listFiles((dir, name) -> name.endsWith(".jpg"));
-                if (frames != null) {
+                if (frames != null && frames.length > 0) {
                     Arrays.sort(frames);
-                    for (File f : frames)
-                        compatibilityFrames.add(ImageIO.read(f));
+                    int limit = Math.min(frames.length, 2000);
+                    for (int i = 0; i < limit; i++) {
+                        compatibilityFrames.add(ImageIO.read(frames[i]));
+                    }
                 }
 
                 if (audioFile.exists()) {
-                    try {
-                        AudioInputStream ais = AudioSystem.getAudioInputStream(audioFile);
-                        compatibilityClip = AudioSystem.getClip();
-                        compatibilityClip.open(ais);
-                    } catch (Exception e) {
-                        System.err.println("Could not load audio: " + e.getMessage());
-                    }
+                    AudioInputStream ais = AudioSystem.getAudioInputStream(audioFile);
+                    compatibilityClip = AudioSystem.getClip();
+                    compatibilityClip.open(ais);
                 }
 
                 SwingUtilities.invokeLater(() -> {
-                    if (compatibilityFrames.isEmpty()) {
-                        imageLabel.setText("Failed to process video.");
-                    } else {
-                        imageLabel.setText(null);
-                        playPauseButton.setEnabled(true);
-                        startCompatibilitySlideshow();
+                    if (currentIndex < filesToSort.length && filesToSort[currentIndex].equals(file)) {
+                        if (compatibilityFrames.isEmpty()) {
+                            imageLabel.setText("Could not extract frames.");
+                        } else {
+                            imageLabel.setText(null);
+                            playPauseButton.setEnabled(true);
+                            startCompatibilitySlideshow();
+                        }
                     }
                 });
+
             } catch (Exception e) {
-                SwingUtilities.invokeLater(() -> imageLabel.setText("FFmpeg Error: " + e.getMessage()));
+                System.err.println("FFmpeg Task Error: " + e.getMessage());
+                SwingUtilities.invokeLater(() -> imageLabel.setText("Error: " + e.getMessage()));
+            } finally {
+                currentFfmpegProcess = null;
             }
         });
     }
@@ -407,28 +428,34 @@ public class PhotoSorterSwing {
     private void startCompatibilitySlideshow() {
         compFrameIndex = 0;
 
-        imageLabel.setIcon(null);
-        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        imageLabel.setVerticalAlignment(SwingConstants.CENTER);
+        if (compatibilityTimer != null) compatibilityTimer.stop();
 
         compatibilityTimer = new javax.swing.Timer(33, e -> {
+            if (compatibilityFrames.isEmpty()) return;
+
             if (compFrameIndex >= compatibilityFrames.size()) {
                 compFrameIndex = 0;
-                if (compatibilityClip != null) compatibilityClip.setFramePosition(0);
             }
 
-            if (!compatibilityFrames.isEmpty()) {
-                imageLabel.setIcon(new ImageIcon(compatibilityFrames.get(compFrameIndex)));
-            }
+            imageLabel.setIcon(new ImageIcon(compatibilityFrames.get(compFrameIndex)));
             compFrameIndex++;
         });
 
-        if (compatibilityClip != null) compatibilityClip.start();
+        if (compatibilityClip != null) {
+            compatibilityClip.setFramePosition(0);
+            compatibilityClip.loop(Clip.LOOP_CONTINUOUSLY);
+        }
+
         compatibilityTimer.start();
         playPauseButton.setText("Pause");
     }
 
     private void stopPlayback() {
+        if (currentFfmpegProcess != null && currentFfmpegProcess.isAlive()) {
+            currentFfmpegProcess.destroyForcibly();
+            currentFfmpegProcess = null;
+        }
+
         if (mediaPlayer != null) {
             Platform.runLater(() -> {
                 if (mediaPlayer != null) {
@@ -452,6 +479,10 @@ public class PhotoSorterSwing {
 
         compatibilityFrames.clear();
         clearTempFrames();
+
+        imageLabel.setIcon(null);
+        imageLabel.setText("");
+
         playPauseButton.setText("Play");
     }
 
