@@ -13,7 +13,7 @@ public class ConfigManager {
     private static final String APP_NAME = "ShiningPr1sm/File Organizer";
     private static final String CONFIG_FILE = "config.properties";
 
-    private static final String GITHUB_URL = "https://github.com/ShiningPr1sm/file-organizer/releases/latest/download/File.Organizer.jar";
+    private static final String GITHUB_URL = "https://github.com/ShiningPr1sm/file-organizer/releases/latest/download/FileOrganizer.jar";
 
     public static Path getConfigPath() {
         return Paths.get(System.getenv("APPDATA"), APP_NAME, CONFIG_FILE);
@@ -30,7 +30,9 @@ public class ConfigManager {
                     props.store(out, null);
                 }
             }
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static String getProperty(String key) {
@@ -38,11 +40,13 @@ public class ConfigManager {
         try (InputStream in = Files.newInputStream(getConfigPath())) {
             props.load(in);
             return props.getProperty(key);
-        } catch (IOException e) { return null; }
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     public static String getLatestVersion() {
-        String versionUrl = "https://raw.githubusercontent.com/ShiningPr1sm/file-organizer/main/version.txt";
+        String versionUrl = "https://raw.githubusercontent.com/ShiningPr1sm/file-organizer/refs/heads/master/version.txt";
         try {
             HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create(versionUrl)).build();
@@ -59,10 +63,16 @@ public class ConfigManager {
     public static void setProperty(String key, String value) {
         Properties props = new Properties();
         try {
-            try (InputStream in = Files.newInputStream(getConfigPath())) { props.load(in); }
+            try (InputStream in = Files.newInputStream(getConfigPath())) {
+                props.load(in);
+            }
             props.setProperty(key, value);
-            try (OutputStream out = Files.newOutputStream(getConfigPath())) { props.store(out, null); }
-        } catch (IOException e) { e.printStackTrace(); }
+            try (OutputStream out = Files.newOutputStream(getConfigPath())) {
+                props.store(out, null);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void downloadNewVersion(Path target) throws Exception {
@@ -76,7 +86,20 @@ public class ConfigManager {
         HttpResponse<Path> response = client.send(request, HttpResponse.BodyHandlers.ofFile(target));
 
         if (response.statusCode() != 200) {
-            throw new IOException("Сервер ответил кодом: " + response.statusCode());
+            throw new IOException("Server respond with code: " + response.statusCode());
         }
+    }
+
+    public static String getInternalVersion() {
+        Properties props = new Properties();
+        try (InputStream is = ConfigManager.class.getResourceAsStream("/project.properties")) {
+            if (is != null) {
+                props.load(is);
+                return props.getProperty("app.version");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "1.0.0";
     }
 }

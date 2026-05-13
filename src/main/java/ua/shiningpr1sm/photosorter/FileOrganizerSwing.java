@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.*;
 
-public class FileOrganizerSwing extends JFrame {
+public class FileOrganizerSwing {
     private File sourceFolder;
     private File destinationFolder;
     private JFrame mainFrame;
@@ -35,6 +35,7 @@ public class FileOrganizerSwing extends JFrame {
     private File currentFolder;
     private File[] filesToSort;
     private int currentIndex = 0;
+    private String CURRENT_VERSION = ConfigManager.getInternalVersion();
 
     private final CardLayout previewCardLayout = new CardLayout();
     private final JPanel previewPanel = new JPanel(previewCardLayout);
@@ -136,7 +137,7 @@ public class FileOrganizerSwing extends JFrame {
             filesToSort = new File[0];
         }
 
-        mainFrame = new JFrame("File Organizer");
+        mainFrame = new JFrame("File Organizer | " + CURRENT_VERSION);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.setResizable(true);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -570,7 +571,7 @@ public class FileOrganizerSwing extends JFrame {
             return;
         String fileName = (currentIndex < filesToSort.length) ? filesToSort[currentIndex].getName() : "End";
         int filesLeft = Math.max(0, filesToSort.length - currentIndex);
-        mainFrame.setTitle("File Organizer | File left: " + filesLeft + " | " + fileName);
+        mainFrame.setTitle("File Organizer | v:" + CURRENT_VERSION + " | File left: " + filesLeft + " | " + fileName);
         statusLabel.setText(isCurrentPhotoCropped ? "[CROPPED]" : " ");
     }
 

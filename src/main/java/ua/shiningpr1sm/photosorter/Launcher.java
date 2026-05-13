@@ -9,31 +9,27 @@ public class Launcher {
     public static void main(String[] args) {
         ConfigManager.initConfig();
 
-        String currentVer = ConfigManager.getProperty("version");
+        String currentVer = ConfigManager.getInternalVersion();
         String latestVer = ConfigManager.getLatestVersion();
 
         if (latestVer != null && !latestVer.equals(currentVer)) {
             try {
-                Path tempJar = Paths.get("File Organizer_new.jar");
+                Path tempJar = Paths.get("FileOrganizer_new.jar");
                 ConfigManager.downloadNewVersion(tempJar);
-
                 ConfigManager.setProperty("version", latestVer);
                 restartAndApply(tempJar);
                 return;
             } catch (Exception e) {
-                System.err.println("Update failed, starting current version...");
                 e.printStackTrace();
             }
         }
 
-        SwingUtilities.invokeLater(() -> {
-            FileOrganizerSwing mainApp = new FileOrganizerSwing();
-            mainApp.setVisible(true);
-        });
+        SwingUtilities.invokeLater(FileOrganizerSwing::new);
     }
+
     private static void restartAndApply(Path tempJar) {
         try {
-            String currentJar = "File Organizer.jar";
+            String currentJar = "FileOrganizer.jar";
             String tempJarName = tempJar.getFileName().toString();
 
             // Windows command:
