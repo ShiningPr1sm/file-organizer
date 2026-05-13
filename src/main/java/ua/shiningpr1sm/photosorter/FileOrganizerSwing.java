@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.*;
 
-public class FileOrganizerSwing {
+public class FileOrganizerSwing extends JFrame {
     private File sourceFolder;
     private File destinationFolder;
     private JFrame mainFrame;
@@ -800,7 +800,7 @@ public class FileOrganizerSwing {
     }
 
     private Path getConfigFilePath() {
-        Path configDir = Paths.get(APPDATA, "PhotoSorter");
+        Path configDir = Paths.get(APPDATA, "ShiningPr1sm/File Organizer");
         try {
             if (!Files.exists(configDir))
                 Files.createDirectories(configDir);
@@ -923,10 +923,6 @@ public class FileOrganizerSwing {
             if (!f.getName().equalsIgnoreCase("ffmpeg.exe") && !f.getName().equalsIgnoreCase("ffmpeg.zip"))
                 f.delete();
         }
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(FileOrganizerSwing::new);
     }
 
     public static class WrapLayout extends FlowLayout {

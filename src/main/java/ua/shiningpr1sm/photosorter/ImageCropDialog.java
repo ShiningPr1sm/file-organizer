@@ -5,12 +5,12 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class ImageCropDialog extends JDialog {
-    private BufferedImage originalImage;
+    private final BufferedImage originalImage;
     private BufferedImage croppedImageResult;
     private CropPanel cropPanel;
 
     public ImageCropDialog(Frame owner, BufferedImage image) {
-        super(owner, "Обрезать изображение", true);
+        super(owner, "Cut image", true);
         this.originalImage = image;
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
