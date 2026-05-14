@@ -35,16 +35,6 @@ public class ConfigManager {
         }
     }
 
-    public static String getProperty(String key) {
-        Properties props = new Properties();
-        try (InputStream in = Files.newInputStream(getConfigPath())) {
-            props.load(in);
-            return props.getProperty(key);
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
     public static String getLatestVersion() {
         String versionUrl = "https://raw.githubusercontent.com/ShiningPr1sm/file-organizer/refs/heads/master/version.txt";
         try {
@@ -58,21 +48,6 @@ public class ConfigManager {
             e.printStackTrace();
         }
         return null;
-    }
-
-    public static void setProperty(String key, String value) {
-        Properties props = new Properties();
-        try {
-            try (InputStream in = Files.newInputStream(getConfigPath())) {
-                props.load(in);
-            }
-            props.setProperty(key, value);
-            try (OutputStream out = Files.newOutputStream(getConfigPath())) {
-                props.store(out, null);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public static void downloadNewVersion(Path target) throws Exception {

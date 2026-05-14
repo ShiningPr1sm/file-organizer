@@ -1,7 +1,6 @@
 package ua.shiningpr1sm.photosorter;
 
 import javax.swing.*;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -28,17 +27,20 @@ public class Launcher {
 
     private static void restartAndApply(Path tempJar) {
         try {
-            String currentJar = "FileOrganizer.jar";
-            String tempJarName = tempJar.getFileName().toString();
+            Path currentJarPath = Paths.get(Launcher.class.getProtectionDomain()
+                    .getCodeSource().getLocation().toURI());
+
+            String tempJarPath = tempJar.toAbsolutePath().toString();
+            String targetJarPath = currentJarPath.toAbsolutePath().toString();
 
             String script = String.format(
-                    "timeout /t 5 && del /f \"%s\" && move /y \"%s\" \"%s\" && pause",
-                    currentJar, tempJarName, currentJar
+                    "timeout /t 3 && del /f \"%s\" && move /y \"%s\" \"%s\" && start javaw -jar \"%s\"",
+                    targetJarPath, tempJarPath, targetJarPath, targetJarPath
             );
 
             new ProcessBuilder("cmd", "/c", script).start();
             System.exit(0);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
