@@ -16,7 +16,6 @@ public class Launcher {
             try {
                 Path tempJar = Paths.get("FileOrganizer_new.jar");
                 ConfigManager.downloadNewVersion(tempJar);
-                ConfigManager.setProperty("version", latestVer);
                 restartAndApply(tempJar);
                 return;
             } catch (Exception e) {
@@ -38,7 +37,7 @@ public class Launcher {
             // 3. Rename new JAR
             // 4. Starting new JAR
             String script = String.format(
-                    "timeout /t 2 && del /f %s && move /y %s %s && start javaw -jar %s",
+                    "timeout /t 2 && del /f \"%s\" && move /y \"%s\" \"%s\" && start javaw -jar \"%s\"",
                     currentJar, tempJarName, currentJar, currentJar
             );
 

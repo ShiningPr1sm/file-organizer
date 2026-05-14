@@ -10,7 +10,7 @@ import java.time.Duration;
 import java.util.Properties;
 
 public class ConfigManager {
-    private static final String APP_NAME = "ShiningPr1sm/File Organizer";
+    private static final String APP_NAME = "ShiningPr1sm/FileOrganizer";
     private static final String CONFIG_FILE = "config.properties";
 
     private static final String GITHUB_URL = "https://github.com/ShiningPr1sm/file-organizer/releases/latest/download/FileOrganizer.jar";
