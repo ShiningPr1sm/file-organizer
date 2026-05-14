@@ -31,14 +31,9 @@ public class Launcher {
             String currentJar = "FileOrganizer.jar";
             String tempJarName = tempJar.getFileName().toString();
 
-            // Windows command:
-            // 1. Wait 2 seconds until process die
-            // 2. Del old JAR
-            // 3. Rename new JAR
-            // 4. Starting new JAR
             String script = String.format(
-                    "timeout /t 2 && del /f \"%s\" && move /y \"%s\" \"%s\" && start javaw -jar \"%s\"",
-                    currentJar, tempJarName, currentJar, currentJar
+                    "timeout /t 5 && del /f \"%s\" && move /y \"%s\" \"%s\" && pause",
+                    currentJar, tempJarName, currentJar
             );
 
             new ProcessBuilder("cmd", "/c", script).start();
