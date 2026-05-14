@@ -129,7 +129,7 @@ public class FileOrganizerSwing {
         rootFolder = destinationFolder;
         currentFolder = destinationFolder;
         File[] allFiles = sourceFolder.listFiles((dir, name) ->
-                name.toLowerCase().matches(".*\\.(jpg|png|jpeg|txt|mp4|m4v|m4a|mov|avi|mkv|mp3|webp)$"));
+                name.toLowerCase().matches(".*\\.(jpg|png|jpeg|ico|txt|mp4|m4v|m4a|mov|avi|mkv|mp3|webp)$"));
         if (allFiles != null) {
             filesToSort = allFiles;
             Arrays.sort(filesToSort);
@@ -309,7 +309,7 @@ public class FileOrganizerSwing {
         fileExtensionLabel.setText("Type: ." + getFileExtension(file).toUpperCase());
 
         String extension = getFileExtension(file);
-        if (extension.matches("jpg|jpeg|png|webp")) {
+        if (extension.matches("jpg|jpeg|png|webp|ico")) {
             showImagePreview(file);
         } else if (extension.equals("txt")) {
             showTextPreview(file);
@@ -505,8 +505,8 @@ public class FileOrganizerSwing {
         try {
             BufferedImage originalImage;
 
-            if (getFileExtension(file).equals("webp")) {
-                originalImage = readWebpViaFfmpeg(file);
+            if (getFileExtension(file).equals("webp") || getFileExtension(file).equals("ico")) {
+                originalImage = readImageViaFfmpeg(file);
             } else {
                 originalImage = ImageIO.read(file);
             }
@@ -531,21 +531,35 @@ public class FileOrganizerSwing {
         }
     }
 
-    private BufferedImage readWebpViaFfmpeg(File webpFile) {
-        try {
-            File tempJpg = new File(TEMP_FRAME_DIR, "webp_convert.jpg");
-            ProcessBuilder pb = new ProcessBuilder(
-                    FFMPEG_EXE.getAbsolutePath(), "-i", webpFile.getAbsolutePath(),
-                    "-y", tempJpg.getAbsolutePath()
-            );
-            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-            pb.start().waitFor();
+    private BufferedImage readImageViaFfmpeg(File inputFile) {
+        // Создаем уникальное имя, чтобы процессы не конфликтовали
+        File tempPng = new File(TEMP_FRAME_DIR, "ffmpeg_conv_" + System.currentTimeMillis() + ".png");
 
-            if (tempJpg.exists()) {
-                return ImageIO.read(tempJpg);
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                    FFMPEG_EXE.getAbsolutePath(),
+                    "-i", inputFile.getAbsolutePath(),
+                    "-y", // Перезапись
+                    tempPng.getAbsolutePath()
+            );
+
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            Process process = pb.start();
+
+            // Ждем завершения, но с таймаутом (на всякий случай)
+            boolean finished = process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            if (finished && tempPng.exists()) {
+                BufferedImage img = ImageIO.read(tempPng);
+                return img;
             }
         } catch (Exception e) {
-            System.err.println("WebP conversion failed: " + e.getMessage());
+            System.err.println("FFmpeg conversion failed for " + inputFile.getName() + ": " + e.getMessage());
+        } finally {
+            // Чистим временный файл в любом случае
+            if (tempPng.exists()) {
+                tempPng.delete();
+            }
         }
         return null;
     }
@@ -801,7 +815,7 @@ public class FileOrganizerSwing {
     }
 
     private Path getConfigFilePath() {
-        Path configDir = Paths.get(APPDATA, "ShiningPr1sm/File Organizer");
+        Path configDir = Paths.get(APPDATA, "ShiningPr1sm/FileOrganizer");
         try {
             if (!Files.exists(configDir))
                 Files.createDirectories(configDir);
