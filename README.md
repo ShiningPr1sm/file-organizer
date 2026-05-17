@@ -2,7 +2,7 @@
 
 > A program that lets you sort your files into a folder of your choice, with a preview option.
 Supported file extensions:
-* Photo: jpg, png, jpeg, webp;
+* Photo: jpg, png, jpeg, webp, ico;
 * Video: mp4, m4v, mov, avi, mkv;
 * Audio: m4a, mp3;
 * Text: txt;
