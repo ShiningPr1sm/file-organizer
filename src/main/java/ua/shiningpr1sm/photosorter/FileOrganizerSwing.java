@@ -35,7 +35,7 @@ public class FileOrganizerSwing {
     private File currentFolder;
     private File[] filesToSort;
     private int currentIndex = 0;
-    private String CURRENT_VERSION = ConfigManager.getInternalVersion();
+    private final String CURRENT_VERSION = ConfigManager.getInternalVersion();
 
     private final CardLayout previewCardLayout = new CardLayout();
     private final JPanel previewPanel = new JPanel(previewCardLayout);
@@ -47,15 +47,20 @@ public class FileOrganizerSwing {
     private MediaView mediaView;
     private Process currentFfmpegProcess;
 
-    private final JPanel videoControlsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
+    private final JPanel videoControlsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0)) {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+        }
+        { setDoubleBuffered(true); }
+    };
+    
     private final JButton playPauseButton = new JButton("Play");
-    private final JButton stopButton = new JButton("Stop");
+    private final JSlider volumeSlider = new JSlider(0, 100, 50);
 
     private final JLabel statusLabel = new JLabel();
     private final JPanel folderButtonPanel = new JPanel(new WrapLayout());
     private final List<File> folders = new ArrayList<>();
-    private final int frameHeight = 880;
-    private final int frameWidth = 1050;
 
     private final JLabel fileSizeLabel = new JLabel();
     private final JLabel fileExtensionLabel = new JLabel();
@@ -97,7 +102,6 @@ public class FileOrganizerSwing {
         UIManager.put("CheckBox.focus", new Color(0, 0, 0, 0));
         Dimension videoButtonSize = new Dimension(120, 40);
         playPauseButton.setPreferredSize(videoButtonSize);
-        stopButton.setPreferredSize(videoButtonSize);
 
         CompletableFuture.runAsync(() -> {
             try {
@@ -141,6 +145,8 @@ public class FileOrganizerSwing {
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.setResizable(true);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int frameHeight = 880;
+        int frameWidth = 1050;
         mainFrame.setBounds(
                 (int) ((screenSize.getWidth() / 2) - (frameWidth / 2.0)),
                 (int) ((screenSize.getHeight() / 2) - (frameHeight / 2.0)),
@@ -245,13 +251,15 @@ public class FileOrganizerSwing {
         previewPanel.add(jfxPanel, "VIDEO");
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         imageLabel.setVerticalAlignment(SwingConstants.CENTER);
-        previewPanel.add(imageScrollPane, "IMAGE");
+
+        jfxPanel.setOpaque(false);
 
         Platform.runLater(() -> {
             mediaView = new MediaView();
             javafx.scene.layout.StackPane root = new javafx.scene.layout.StackPane(mediaView);
-            root.setStyle("-fx-background-color: white;");
-            Scene scene = new Scene(root);
+            root.setStyle("-fx-background-color: transparent;");
+            javafx.scene.paint.Color transparentColor = javafx.scene.paint.Color.TRANSPARENT;
+            Scene scene = new Scene(root, transparentColor);
             jfxPanel.setScene(scene);
 
             mediaView.fitWidthProperty().bind(jfxPanel.getScene().widthProperty());
@@ -259,31 +267,164 @@ public class FileOrganizerSwing {
             mediaView.setPreserveRatio(true);
         });
 
+        styleVideoButton(playPauseButton);
+
+        volumeSlider.addChangeListener(e -> {
+            int value = volumeSlider.getValue();
+            double volume = value / 100.0;
+            if (mediaPlayer != null) {
+                Platform.runLater(() -> mediaPlayer.setVolume(volume));
+            }
+            volumeSlider.getParent().repaint();
+        });
+
         playPauseButton.addActionListener(e -> {
             if (compatibilityModeCheckbox.isSelected()) {
                 if (compatibilityTimer != null) {
                     if (compatibilityTimer.isRunning()) {
                         compatibilityTimer.stop();
-                        if (compatibilityClip != null)
-                            compatibilityClip.stop();
+                        if (compatibilityClip != null) compatibilityClip.stop();
                     } else {
                         compatibilityTimer.start();
-                        if (compatibilityClip != null)
-                            compatibilityClip.start();
+                        if (compatibilityClip != null) compatibilityClip.start();
                     }
                     playPauseButton.setText(compatibilityTimer.isRunning() ? "Pause" : "Play");
                 }
             } else if (mediaPlayer != null) {
-                if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING)
-                    mediaPlayer.pause();
-                else
-                    mediaPlayer.play();
+                Platform.runLater(() -> {
+                    if (mediaPlayer.getRate() > 0 && mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+                        mediaPlayer.pause();
+                    } else {
+                        if (mediaPlayer.getCurrentTime().greaterThanOrEqualTo(mediaPlayer.getTotalDuration())) {
+                            mediaPlayer.seek(javafx.util.Duration.ZERO);
+                        }
+                        mediaPlayer.play();
+                    }
+                });
             }
         });
-        stopButton.addActionListener(e -> stopPlayback());
+
+        videoControlsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        videoControlsPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+
+        volumeSlider.setPreferredSize(new Dimension(150, 30));
+        volumeSlider.setBackground(videoControlsPanel.getBackground());
+        volumeSlider.setFocusable(false);
+        volumeSlider.setFocusable(false);
+        volumeSlider.putClientProperty("JSlider.isFilled", Boolean.FALSE);
+        UIManager.put("Slider.paintValue", Boolean.FALSE);
+        volumeSlider.setPaintTicks(false);
+        volumeSlider.setPaintLabels(false);
+        volumeSlider.setPaintTrack(true);
+        volumeSlider.setUI(new CustomSliderUI(volumeSlider));
+
+        volumeSlider.setOpaque(true);
+        volumeSlider.setDoubleBuffered(true);
+
+        volumeSlider.addChangeListener(e -> {
+            int value = volumeSlider.getValue();
+            double volume = value / 100.0;
+            if (mediaPlayer != null) {
+                Platform.runLater(() -> mediaPlayer.setVolume(volume));
+            }
+        });
+
+        JLabel volLabel = new JLabel("Vol:");
+        volLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        volLabel.setForeground(new Color(60, 60, 60));
+
         videoControlsPanel.add(playPauseButton);
-        videoControlsPanel.add(stopButton);
+        videoControlsPanel.add(volLabel);
+        videoControlsPanel.add(volumeSlider);
+
         videoControlsPanel.setVisible(false);
+    }
+
+    private void styleVideoButton(JButton button) {
+        button.setPreferredSize(new Dimension(100, 35));
+        button.setBackground(new Color(190, 185, 185));
+        button.setForeground(Color.BLACK);
+        button.setFont(new Font("Arial", Font.BOLD, 13));
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder());
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(190, 170, 170));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(190, 185, 185));
+            }
+        });
+    }
+
+    private static class CustomSliderUI extends javax.swing.plaf.basic.BasicSliderUI {
+        public CustomSliderUI(JSlider b) {
+            super(b);
+        }
+
+        @Override
+        public void paint(Graphics g, JComponent c) {
+            Graphics2D g2d = (Graphics2D) g;
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            paintTrack(g2d);
+            paintThumb(g2d);
+        }
+
+        @Override
+        protected void calculateTrackRect() {
+            super.calculateTrackRect();
+            int thumbHalf = thumbRect.width / 2;
+            trackRect.x += thumbHalf;
+            trackRect.width -= thumbHalf * 2;
+        }
+
+        @Override
+        public void paintTrack(Graphics g) {
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int trackHeight = 4;
+            int trackY = trackRect.y + (trackRect.height - trackHeight) / 2;
+            int thumbPos = thumbRect.x + thumbRect.width / 2;
+
+            g2d.setColor(new Color(210, 210, 210));
+            g2d.fillRoundRect(trackRect.x, trackY, trackRect.width, trackHeight, trackHeight, trackHeight);
+
+            int fillWidth = thumbPos - trackRect.x;
+            if (fillWidth > 0) {
+                g2d.setColor(new Color(160, 155, 160));
+                g2d.fillRoundRect(trackRect.x, trackY, fillWidth, trackHeight, trackHeight, trackHeight);
+            }
+
+            g2d.dispose();
+        }
+
+        @Override
+        public void paintThumb(Graphics g) {
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int size = 14;
+            int x = thumbRect.x + (thumbRect.width - size) / 2;
+            int y = thumbRect.y + (thumbRect.height - size) / 2;
+
+            g2d.setColor(new Color(0, 0, 0, 30));
+            g2d.fillOval(x + 1, y + 1, size, size);
+
+            g2d.setColor(new Color(190, 185, 185));
+            g2d.fillOval(x, y, size, size);
+            
+            g2d.setColor(new Color(160, 155, 155));
+            g2d.drawOval(x, y, size, size);
+
+            g2d.dispose();
+        }
+
+        @Override
+        public void paintFocus(Graphics g) {}
     }
 
     private void updatePreview() {
@@ -328,15 +469,35 @@ public class FileOrganizerSwing {
     private void showVideoPreview(File file) {
         videoControlsPanel.setVisible(true);
         previewCardLayout.show(previewPanel, "VIDEO");
+
+        double currentVolume = volumeSlider.getValue() / 100.0;
+
         Platform.runLater(() -> {
             try {
-                if (mediaPlayer != null)
+                if (mediaPlayer != null) {
+                    mediaPlayer.stop();
                     mediaPlayer.dispose();
+                }
+
                 Media media = new Media(file.toURI().toString());
                 mediaPlayer = new MediaPlayer(media);
-                mediaPlayer.statusProperty().addListener((obs, oldS, newS) -> SwingUtilities.invokeLater(() -> playPauseButton.setText(newS == MediaPlayer.Status.PLAYING ? "Pause" : "Play")));
+
+                mediaPlayer.setVolume(currentVolume);
+
+                mediaPlayer.setOnEndOfMedia(() -> {
+                    mediaPlayer.seek(javafx.util.Duration.ZERO);
+                    mediaPlayer.play();
+                });
+
+                mediaPlayer.statusProperty().addListener((obs, oldS, newS) ->
+                        SwingUtilities.invokeLater(() ->
+                                playPauseButton.setText(newS == MediaPlayer.Status.PLAYING ? "Pause" : "Play")
+                        )
+                );
+
                 mediaView.setMediaPlayer(mediaPlayer);
                 mediaPlayer.setAutoPlay(true);
+                mediaPlayer.play();
             } catch (Exception e) {
                 SwingUtilities.invokeLater(() -> showUnsupportedPreview(file));
             }
