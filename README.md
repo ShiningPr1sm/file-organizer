@@ -15,7 +15,7 @@
 ---
 
 ## Overview
-The program allows you to sort files from a single main folder—which has accumulated a large number of files—into a master folder divided into multiple subfolders. The program uses Java version 21.0.11, FFmpeg.
+The program allows you to sort files from a single main folder which has accumulated a large number of files into a master folder divided into multiple subfolders. The program uses Java version 21.0.11, FFmpeg.
 Supported file extensions:
 * Photo: jpg, png, jpeg, webp, ico;
 * Video: mp4, m4v, mov, avi, mkv;
