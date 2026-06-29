@@ -82,7 +82,7 @@ public class ConfigManager {
     }
 
     public static String getLatestReleaseNotes() {
-        String apiUrl = "https://api.github.com/repos/ShiningPr1sm/testfield/releases/latest";
+        String apiUrl = "https://api.github.com/repos/ShiningPr1sm/file-organizer/releases/latest";
         try {
             HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
             HttpRequest request = HttpRequest.newBuilder()
