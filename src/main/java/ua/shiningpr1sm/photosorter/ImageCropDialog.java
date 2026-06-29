@@ -22,9 +22,7 @@ public class ImageCropDialog extends JDialog {
     private void initUI() {
         setLayout(new BorderLayout());
         cropPanel = new CropPanel(originalImage);
-        JScrollPane scrollPane = new JScrollPane(cropPanel);
-        scrollPane.setPreferredSize(cropPanel.getPreferredSize());
-        add(scrollPane, BorderLayout.CENTER);
+        add(cropPanel, BorderLayout.CENTER);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton cropButton = new JButton("Cut");

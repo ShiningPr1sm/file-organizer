@@ -141,7 +141,8 @@ public class FileOrganizerSwing {
             filesToSort = new File[0];
         }
 
-        mainFrame = new JFrame("File Organizer | " + CURRENT_VERSION);
+        mainFrame = new JFrame();
+        mainFrame.setTitle(String.format("Media Downloader  |  v%s", CURRENT_VERSION));
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.setResizable(true);
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -447,7 +448,7 @@ public class FileOrganizerSwing {
 
         File file = filesToSort[currentIndex];
         fileSizeLabel.setText("Size: " + formatFileSize(file.length()));
-        fileExtensionLabel.setText("Type: ." + getFileExtension(file).toUpperCase());
+        fileExtensionLabel.setText("Type: " + getFileExtension(file).toUpperCase());
 
         String extension = getFileExtension(file);
         if (extension.matches("jpg|jpeg|png|webp|ico")) {
@@ -693,21 +694,19 @@ public class FileOrganizerSwing {
     }
 
     private BufferedImage readImageViaFfmpeg(File inputFile) {
-        // Создаем уникальное имя, чтобы процессы не конфликтовали
         File tempPng = new File(TEMP_FRAME_DIR, "ffmpeg_conv_" + System.currentTimeMillis() + ".png");
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
                     FFMPEG_EXE.getAbsolutePath(),
                     "-i", inputFile.getAbsolutePath(),
-                    "-y", // Перезапись
+                    "-y",
                     tempPng.getAbsolutePath()
             );
 
             pb.redirectError(ProcessBuilder.Redirect.DISCARD);
             Process process = pb.start();
 
-            // Ждем завершения, но с таймаутом (на всякий случай)
             boolean finished = process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
 
             if (finished && tempPng.exists()) {
@@ -717,7 +716,6 @@ public class FileOrganizerSwing {
         } catch (Exception e) {
             System.err.println("FFmpeg conversion failed for " + inputFile.getName() + ": " + e.getMessage());
         } finally {
-            // Чистим временный файл в любом случае
             if (tempPng.exists()) {
                 tempPng.delete();
             }
