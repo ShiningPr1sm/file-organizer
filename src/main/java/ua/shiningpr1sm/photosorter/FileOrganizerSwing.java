@@ -744,7 +744,7 @@ public class FileOrganizerSwing {
             return;
         String fileName = (currentIndex < filesToSort.length) ? filesToSort[currentIndex].getName() : "End";
         int filesLeft = Math.max(0, filesToSort.length - currentIndex);
-        mainFrame.setTitle("File Organizer | v:" + CURRENT_VERSION + " | File left: " + filesLeft + " | " + fileName);
+        mainFrame.setTitle("File Organizer  |  v" + CURRENT_VERSION + "  |  File left: " + filesLeft + "  |  " + fileName);
         statusLabel.setText(isCurrentPhotoCropped ? "[CROPPED]" : " ");
     }
 

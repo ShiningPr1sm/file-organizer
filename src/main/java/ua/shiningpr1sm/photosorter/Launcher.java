@@ -2,28 +2,52 @@ package ua.shiningpr1sm.photosorter;
 
 import javax.swing.*;
 import java.awt.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Properties;
 
 public class Launcher {
     public static void main(String[] args) {
         ConfigManager.initConfig();
-
         String currentVer = ConfigManager.getInternalVersion();
-        String latestVer = ConfigManager.getLatestVersion();
+        ConfigManager.ReleaseInfo release = ConfigManager.getLatestReleaseInfo();
 
-        if (latestVer != null && !latestVer.equals(currentVer)) {
+        if (release != null && ConfigManager.compareVersions(release.version(), currentVer) > 0) {
+            String latestVer = release.version();
+            String releaseNotes = release.releaseNotesHtml();
+
+            Properties props = ConfigManager.loadConfig();
+            String failedVer = props.getProperty("lastFailedUpdateVersion", "");
+            int attempts = Integer.parseInt(props.getProperty("updateAttempts", "0"));
+
+            if (latestVer.equals(failedVer) && attempts >= 3) {
+                System.err.println("Updated to " + latestVer + " failed three times already, skip it");
+                SwingUtilities.invokeLater(FileOrganizerSwing::new);
+                return;
+            }
+
             try {
-                String releaseNotes = ConfigManager.getLatestReleaseNotes();
-
-                showUpdateDialog(latestVer, releaseNotes);
+                showUpdateDialog(currentVer, latestVer, releaseNotes);
 
                 Path tempJar = Paths.get("FileOrganizer_new.jar");
                 ConfigManager.downloadNewVersion(tempJar);
+
+                String downloadedVer = ConfigManager.getJarVersion(tempJar);
+                if (downloadedVer == null || !downloadedVer.equals(latestVer)) {
+                    System.err.println("Downloaded JAR file does not match the version " + latestVer + ", undo");
+                    Files.deleteIfExists(tempJar);
+                    ConfigManager.recordFailedUpdate(latestVer);
+                    SwingUtilities.invokeLater(FileOrganizerSwing::new);
+                    return;
+                }
+
+                ConfigManager.resetUpdateAttempts();
                 restartAndApply(tempJar);
                 return;
             } catch (Exception e) {
                 e.printStackTrace();
+                ConfigManager.recordFailedUpdate(latestVer);
             }
         }
 
@@ -67,7 +91,7 @@ public class Launcher {
         }
     }
 
-    private static void showUpdateDialog(String latestVer, String releaseNotes) {
+    private static void showUpdateDialog(String currentVer, String latestVer, String releaseNotes) {
         String notesHtml = (releaseNotes != null && !releaseNotes.isBlank())
                 ? releaseNotes
                 : "<p>No release notes available.</p>";
@@ -84,7 +108,7 @@ public class Launcher {
                 "em { font-style: italic; }" +
                 "</style></head><body>" +
                 "<h2>New Update is here!</h2>" +
-                "<p><b>Version:</b> " + latestVer + "</p>" +
+                "<p><b>Version:</b> " + currentVer + " → " + latestVer + "</p>" +
                 "<hr style='border: none; border-top: 1px solid #ddd; margin: 8px 0;'/>" +
                 "<b>What's new:</b><br/>" +
                 notesHtml +
@@ -162,7 +186,7 @@ public class Launcher {
         okButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         JDialog dialog = new JDialog();
-        dialog.setTitle("Update Available — TestField");
+        dialog.setTitle("Update Available");
         dialog.setModal(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
